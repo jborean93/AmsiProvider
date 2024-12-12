@@ -56,15 +56,16 @@ public static class Dll
         EntryPoint = "DllGetClassObject",
         CallConvs = [typeof(CallConvStdcall)])]
     private unsafe static int GetClassObject(
-        nint rclsid,
-        nint riid,
+        Guid* rclsid,
+        Guid* riid,
         void** ppv)
     {
         const int CLASS_E_CLASSNOTAVAILABLE = unchecked((int)0x80040111);
         try
         {
-            string clsid = ((Guid*)rclsid)->ToString();
-            Log($"DllGetClassObject CLSID '{clsid}'");
+            string clsid = rclsid->ToString();
+            string riidString = riid->ToString();
+            Log($"DllGetClassObject CLSID '{clsid}' - '{riidString}'");
 
             if (!string.Equals(ProviderClsid, clsid, StringComparison.OrdinalIgnoreCase))
             {
@@ -72,8 +73,7 @@ public static class Dll
             }
 
             Log("DllGetClassObject - class match");
-
-            *ppv = ComInterfaceMarshaller<IAntimalwareProvider>.ConvertToUnmanaged(new AntimalwareProvider());
+            *ppv = ComInterfaceMarshaller<IClassFactory>.ConvertToUnmanaged(new AntimalwareClassFactory());
         }
         catch (Exception e)
         {
