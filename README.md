@@ -1,5 +1,6 @@
 # Test AMSI Provider
-This is a [AMSI](https://learn.microsoft.com/en-us/windows/win32/amsi/antimalware-scan-interface-portal) antimalware provider written in C# that can be used to log the raw AMSI scan and notify requests from client applications.
+This is a [AMSI](https://learn.microsoft.com/en-us/windows/win32/amsi/antimalware-scan-interface-portal) antimalware provider written in C# that can be used to log the raw AMSI scan and notify requests from client applications. The dll is compiled through NativeAOT so requires no .NET runtime to run. NativeAOT and C# was chosen to see if it was possible to write a COM server plugin in managed code without having to touch or C++ and also build a dll that required no extra runtime depedencies. While there is liberal use of unsafe code and pointers this proves it is possible to do.
+
 This is designed as a proof of concept and test code, there is no guarantee of quality and use at your own risk.
 
 ## What Can It Do
