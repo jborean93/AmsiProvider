@@ -1,3 +1,4 @@
+using AmsiProvider.Com;
 using AmsiProvider.Native;
 using System;
 using System.IO;
@@ -10,38 +11,11 @@ namespace AmsiProvider;
 public static class Dll
 {
     public const string ProviderName = "TestAmsiProvider";
-    public const string ProviderClsid = "d9987ee2-25f9-43bc-a94f-2edeef851a65";
-
-    private const int DLL_PROCESS_DETACH = 0;
-    private const int DLL_PROCESS_ATTACH = 1;
 
     private const int S_OK = 0;
     private const int E_UNEXPECTED = unchecked((int)0x8000FFFF);
 
     private const int MAX_PATH = 260;
-
-    private static nint DllInstance;
-
-    [UnmanagedCallersOnly(
-        EntryPoint = "DllMain",
-        CallConvs = [typeof(CallConvStdcall)])]
-    [return: MarshalAs(UnmanagedType.Bool)]
-    private static bool Main(
-        nint hinstDLL,
-        int fdwReason,
-        nint lpvReserved)
-    {
-        switch (fdwReason)
-        {
-            case DLL_PROCESS_ATTACH:
-                DllInstance = hinstDLL;
-                Kernel32.DisableThreadLibraryCalls(hinstDLL);
-                break;
-            case DLL_PROCESS_DETACH:
-                break;
-        }
-        return true;
-    }
 
     [UnmanagedCallersOnly(
         EntryPoint = "DllCanUnloadNow",
@@ -67,7 +41,7 @@ public static class Dll
             string riidString = riid->ToString();
             Log($"DllGetClassObject CLSID '{clsid}' - '{riidString}'");
 
-            if (!string.Equals(ProviderClsid, clsid, StringComparison.OrdinalIgnoreCase))
+            if (!string.Equals(typeof(IClassFactory).GUID.ToString(), clsid, StringComparison.OrdinalIgnoreCase))
             {
                 return CLASS_E_CLASSNOTAVAILABLE;
             }
@@ -88,26 +62,36 @@ public static class Dll
     [UnmanagedCallersOnly(
         EntryPoint = "DllRegisterServer",
         CallConvs = [typeof(CallConvStdcall)])]
-    private static int RegisterServer()
+    private static unsafe int RegisterServer()
     {
         try
         {
-            string modulePath;
-            Span<char> pathBuffer = stackalloc char[MAX_PATH];
-            unsafe
+            // We can't safely use DllMain to store the hinst of the dll in
+            // NAOT and Marshal.GetHINSTANCE returns -1 for a NAOT dll. Use
+            // GetModuleHandleExW with GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS
+            // to get it from the address of this function.
+            if (!Kernel32.GetModuleHandleExW(
+                Kernel32.GET_MODULE_HANDLE_EX_FLAG_UNCHANGED_REFCOUNT | Kernel32.GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS,
+                (delegate* unmanaged[Stdcall]<int>)&RegisterServer,
+                out nint hinstDLL))
             {
-                fixed (char* pathPtr = pathBuffer)
-                {
-                    int size = Kernel32.GetModuleFileNameW(DllInstance, pathPtr, MAX_PATH);
-                    if (size >= MAX_PATH)
-                    {
-                        return E_UNEXPECTED;
-                    }
-                    modulePath = pathBuffer[..size].ToString();
-                }
+                return Marshal.GetLastPInvokeError();
             }
 
-            DllRegistration.Register(ProviderClsid, ProviderName, modulePath);
+            Span<char> pathBuffer = stackalloc char[MAX_PATH];
+            int size;
+            fixed (char* pathPtr = pathBuffer)
+            {
+                size = Kernel32.GetModuleFileNameW(hinstDLL, pathPtr, MAX_PATH);
+                if (size >= MAX_PATH)
+                {
+                    return E_UNEXPECTED;
+                }
+            }
+            string modulePath = pathBuffer[..size].ToString();
+            Log($"DllRegisterServer - ModulePath '{modulePath}'");
+
+            DllRegistration.Register(typeof(IClassFactory).GUID.ToString(), ProviderName, modulePath);
 
             return S_OK;
         }
@@ -124,7 +108,7 @@ public static class Dll
     {
         try
         {
-            DllRegistration.Unregister(ProviderClsid);
+            DllRegistration.Unregister(typeof(IClassFactory).GUID.ToString());
 
             return S_OK;
         }

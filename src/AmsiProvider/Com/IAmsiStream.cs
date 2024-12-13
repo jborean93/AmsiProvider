@@ -1,7 +1,7 @@
 using System.Runtime.InteropServices;
 using System.Runtime.InteropServices.Marshalling;
 
-namespace AmsiProvider;
+namespace AmsiProvider.Com;
 
 [GeneratedComInterface]
 [Guid("3e47f2e5-81d4-4d3b-897f-545096770373")]

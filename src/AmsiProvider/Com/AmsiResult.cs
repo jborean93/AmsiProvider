@@ -1,0 +1,10 @@
+namespace AmsiProvider.Com;
+
+internal enum AmsiResult
+{
+    AMSI_RESULT_CLEAN,
+    AMSI_RESULT_NOT_DETECTED,
+    AMSI_RESULT_BLOCKED_BY_ADMIN_START = 0x4000,
+    AMSI_RESULT_BLOCKED_BY_ADMIN_END = 0x4fff,
+    AMSI_RESULT_DETECTED = 0x8000,
+}

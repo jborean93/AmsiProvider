@@ -18,7 +18,7 @@ if ($regProc.ExitCode) {
 
 try {
     Write-Host "Running test"
-    pwsh -Command 'echo "hi"'
+    pwsh -Command 'echo "hi"; [Console]::WriteLine("test")'
     Write-Host "Test end"
 }
 finally {
