@@ -19,10 +19,9 @@ $arguments = @(
 )
 
 $binPath = [Path]::Combine($PSScriptRoot, 'bin')
-if (Test-Path -LiteralPath $binPath) {
-    Remove-Item -LiteralPath $binPath -Recurse -Force
+if (-not (Test-Path -LiteralPath $binPath)) {
+    New-Item -Path $binPath -ItemType Directory | Out-Null
 }
-New-Item -Path $binPath -ItemType Directory | Out-Null
 
 Get-ChildItem -LiteralPath $PSScriptRoot/src | ForEach-Object -Process {
     Write-Host "Compiling $($_.Name)" -ForegroundColor Cyan

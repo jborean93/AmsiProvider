@@ -13,13 +13,11 @@ internal static class DllRegistration
         string name,
         string modulePath)
     {
-        string amsiPath = $"{AmsiProviderKeyPath}\\{{{clsid}}}";
-        string clsidPath = $"{ClsidKeyPath}\\{{{clsid}}}";
-
         using RegistryKey hklm = RegistryKey.OpenBaseKey(
             RegistryHive.LocalMachine,
             RegistryView.Default);
 
+        string clsidPath = $"{ClsidKeyPath}\\{{{clsid}}}";
         using RegistryKey clsidClassKey = hklm.OpenSubKey(clsidPath, true)
             ?? hklm.CreateSubKey(clsidPath, true);
         clsidClassKey.SetValue(null, name, RegistryValueKind.String);
@@ -29,6 +27,8 @@ internal static class DllRegistration
         clsidServerKey.SetValue(null, modulePath, RegistryValueKind.String);
         clsidServerKey.SetValue("ThreadingModel", "Both", RegistryValueKind.String);
 
+        // The 2 key tells AMSI we also support the IAntimalwareProvider2.
+        string amsiPath = $"{AmsiProviderKeyPath}2\\{{{clsid}}}";
         using RegistryKey amsiProviderKey = hklm.OpenSubKey(amsiPath, true)
             ?? hklm.CreateSubKey(amsiPath, true);
         amsiProviderKey.SetValue(null, name, RegistryValueKind.String);
@@ -40,7 +40,8 @@ internal static class DllRegistration
             RegistryHive.LocalMachine,
             RegistryView.Default);
 
-        hklm.DeleteSubKeyTree($"{AmsiProviderKeyPath}\\{{{clsid}}}", false);
+        // hklm.DeleteSubKeyTree($"{AmsiProviderKeyPath}\\{{{clsid}}}", false);
+        hklm.DeleteSubKeyTree($"{AmsiProviderKeyPath}2\\{{{clsid}}}", false);
         hklm.DeleteSubKeyTree($"{ClsidKeyPath}\\{{{clsid}}}", false);
     }
 }

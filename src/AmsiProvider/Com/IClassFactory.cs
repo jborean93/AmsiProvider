@@ -5,7 +5,7 @@ using System.Runtime.InteropServices.Marshalling;
 namespace AmsiProvider.Com;
 
 [GeneratedComInterface]
-[Guid("d9987ee2-25f9-43bc-a94f-2edeef851a65")]
+[Guid("00087ee2-25f9-43bc-a94f-2edeef851a65")]
 internal partial interface IClassFactory
 {
     unsafe nint CreateInstance(
