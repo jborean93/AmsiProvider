@@ -89,7 +89,7 @@ internal class ProviderConfig
                 : $"{configFileName}.log";
             string logPath = Path.Combine(logDirectory, logFileName);
 
-            logStream = new FileStream(logPath, FileMode.Append, FileAccess.Write, FileShare.Read);
+            logStream = new FileStream(logPath, FileMode.Append, FileAccess.Write, FileShare.ReadWrite);
         }
 
         _config = new(logStream, readFunc);

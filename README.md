@@ -31,7 +31,7 @@ By default, the provider is set to write all the data to a file called `AmsiProv
 }
 ```
 
-The `LogPath` can also be set to either `stdout` or `stderr` to write the standard output or error of the process which is invoking the AMSI provider. If specifying a path to a directory, make sure that it is writable by the user triggering the AMSI provider as the logging is run in the same process as what is triggering AMSI.
+The `LogPath` can also be set to either `stdout` or `stderr` to write the standard output or error of the process which is invoking the AMSI provider. If specifying a path to a directory, make sure that it is writable by the user triggering the AMSI provider as the logging is run in the same process as what is triggering AMSI. By default the log file in the path will always be `AmsiProvider.log`, this may be problematic if there are multiple processes trying to write to the log at the same time. To avoid this you can set `"StoreByPid": true` to instead use the filename `AmsiProvider.$pid.log` where `$pid` is the process id for the client requesting the AMSI scan. This avoids the clobbering issue but can result in multiple log files being used.
 
 The `ContentEncoding` value controls the format/encoding the `"Content"` key is set to. Here is a more detailed explanation of what each option does:
 
@@ -126,7 +126,28 @@ To uninstall run the following `regsvr32` command
 regsvr32.exe /u .\bin\AmsiProvider\AmsiProvider.dll
 ```
 
-The `regsvr32.exe` command called the [DllRegisterServer](https://learn.microsoft.com/en-us/windows/win32/api/olectl/nf-olectl-dllregisterserver) function exported by the provider which in turn set the following registry values
+By default the registration will use the `Providers2` subkey in the AMSI registry tree which supports the `IAntimalwareProvider2` interface and the `Notify` operation. I am not sure when `Providers2` support was added but if you are using an older Windows version and the logs are not working after registration you can use the `AMSI_TEST_PROVIDER_VERSION` env var to control the provider version to register under.
+
+```powershell
+# Ensure any old registrations are removed
+regsvr32.exe /u .\bin\AmsiProvider\AmsiProvider.dll
+
+# Set the provider version to 1 for older hosts before registration
+$env:AMSI_TEST_PROVIDER_VERSION = '1'
+regsvr32.exe .\bin\AmsiProvider\AmsiProvider.dll
+
+# Unset the env var now that registration is done
+$env:AMSI_TEST_PROVIDER_VERSION = $null
+```
+
+The value for `AMSI_TEST_PROVIDER_VERSION` can be set to the following, any other value will result in a failure during registration.
+
++ `1` - The baseline version, supports the `Scan` request
++ `2` (default) - Adds support for the `Notify` request
+
+Each version supports all the features of the versions before it.
+
+The `regsvr32.exe` command called the [DllRegisterServer](https://learn.microsoft.com/en-us/windows/win32/api/olectl/nf-olectl-dllregisterserver) function exported by the provider which in turn set the following registry values (`Providers2` may be different depending on what `AMSI_TEST_PROVIDER_VERSION` was set to):
 
 + `HKLM:\SOFTWARE\Microsoft\AMSI\Providers2\{00087ee2-25f9-43bc-a94f-2edeef851a65}`
   + `(Default)` - `TestAmsiProvider`
