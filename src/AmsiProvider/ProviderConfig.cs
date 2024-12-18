@@ -10,11 +10,11 @@ internal class ProviderConfig
 {
     private static ProviderConfig? _config = null;
 
-    private readonly FileStream _logStream;
+    private readonly Stream _logStream;
     private readonly Func<ReadOnlySpan<byte>, string> _readBufferFunc;
 
     private ProviderConfig(
-        FileStream logStream,
+        Stream logStream,
         Func<ReadOnlySpan<byte>, string> readBufferFunc)
     {
         _logStream = logStream;
@@ -53,12 +53,6 @@ internal class ProviderConfig
             config = JsonSerializer.Deserialize(fs, SourceGenerationContext.Default.ConfigJson);
         }
 
-        string logDirectory = config?.LogPath ?? Path.Combine(moduleDirectory);
-        string logFileName = config?.StoreByPid == true
-            ? $"{configFileName}.{Environment.ProcessId}.log"
-            : $"{configFileName}.log";
-        string logPath = Path.Combine(logDirectory, logFileName);
-
         string? contentEncoding = config?.ContentEncoding?.ToLowerInvariant();
         Func<ReadOnlySpan<byte>, string> readFunc;
         if (contentEncoding == "base64")
@@ -78,7 +72,26 @@ internal class ProviderConfig
             readFunc = Encoding.GetEncoding(contentEncoding).GetString;
         }
 
-        FileStream logStream = new(logPath, FileMode.Append, FileAccess.Write, FileShare.Read);
+        Stream logStream;
+        if (config?.LogPath?.Equals("stdout", StringComparison.OrdinalIgnoreCase) == true)
+        {
+            logStream = Console.OpenStandardOutput();
+        }
+        else if (config?.LogPath?.Equals("stderr", StringComparison.OrdinalIgnoreCase) == true)
+        {
+            logStream = Console.OpenStandardError();
+        }
+        else
+        {
+            string logDirectory = config?.LogPath ?? Path.Combine(moduleDirectory);
+            string logFileName = config?.StoreByPid == true
+                ? $"{configFileName}.{Environment.ProcessId}.log"
+                : $"{configFileName}.log";
+            string logPath = Path.Combine(logDirectory, logFileName);
+
+            logStream = new FileStream(logPath, FileMode.Append, FileAccess.Write, FileShare.Read);
+        }
+
         _config = new(logStream, readFunc);
         return _config;
     }

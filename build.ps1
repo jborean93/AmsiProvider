@@ -1,4 +1,5 @@
 using namespace System.IO
+using namespace System.Runtime.InteropServices
 
 [CmdletBinding()]
 param (
@@ -13,7 +14,7 @@ $arguments = @(
     'publish'
     '--configuration', $Configuration
     '--verbosity', 'quiet'
-    '--runtime', 'win-x64'
+    '--runtime', "win-$(([RuntimeInformation]::OSArchitecture).ToString().ToLowerInvariant())"
     '-nologo'
     "-p:Version=1.0.0"
 )
@@ -28,7 +29,12 @@ Get-ChildItem -LiteralPath $PSScriptRoot/src | ForEach-Object -Process {
 
     $csproj = (Get-Item -Path "$([Path]::Combine($_.FullName, '*.csproj'))").FullName
     $outputDir = [Path]::Combine($binPath, $_.Name)
-    New-Item -Path $outputDir -ItemType Directory -Force | Out-Null
+    if (-not (Test-Path -LiteralPath $outputDir)) {
+        New-Item -Path $outputDir -ItemType Directory -Force | Out-Null
+    }
+    Get-ChildItem -LiteralPath $outputDir |
+        Where-Object { $_.Extension -in '.exe', '.pdb' } |
+        Remove-Item -Force
     dotnet @arguments --output $outputDir $csproj
 
     if ($LASTEXITCODE) {

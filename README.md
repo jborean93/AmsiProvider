@@ -31,6 +31,8 @@ By default, the provider is set to write all the data to a file called `AmsiProv
 }
 ```
 
+The `LogPath` can also be set to either `stdout` or `stderr` to write the standard output or error of the process which is invoking the AMSI provider. If specifying a path to a directory, make sure that it is writable by the user triggering the AMSI provider as the logging is run in the same process as what is triggering AMSI.
+
 The `ContentEncoding` value controls the format/encoding the `"Content"` key is set to. Here is a more detailed explanation of what each option does:
 
 + `Unicode`: (default) will decode the raw buffers as a Unicode/UTF-16-LE encoded string
@@ -84,6 +86,19 @@ Breaking this down we can see that PowerShell has asked AMSI if the provided com
 
 The data returned can vary from application to application. This provider has mostly be tested with PowerShell but should work with any other application which writes to AMSI.
 
+For example the `AmsiClient` included as a test with this repo will emit a scan and notify request:
+
+```powershell
+.\bin\AmsiClient\AmsiClient.exe
+# AmsiNotifyOperation [testing notify] - 0 - AMSI_RESULT_NOT_DETECTED
+# AmsiScanBuffer [testing scan buffer] - 0 - AMSI_RESULT_NOT_DETECTED
+```
+
+```json
+{"Action":"Notify","AppName":"AmsiTest","ContentName":"notify content app","SessionId":0,"Content":"testing notify"}
+{"Action":"Scan","AppName":"AmsiTest","ContentName":"scan buffer app","SessionId":29102,"Content":"testing scan buffer"}
+```
+
 ## How to Build
 To build this provider, the .NET SDK capable of building `net9.0-windows` is required. Once installed you can run the following to build the provider dll.
 
@@ -91,7 +106,8 @@ To build this provider, the .NET SDK capable of building `net9.0-windows` is req
 powershell.exe -File build.ps1
 ```
 
-The provider dll will be located in `bin\AmsiProvider`.
+The provider dll will be located in `bin\AmsiProvider\AmsiProvider.dll`.
+The test client exe will be located in `bin\AmsiClient\AmsiClient.exe`
 
 ## How to Install
 Once built the DLL needs to be registered with [regsvr32](https://learn.microsoft.com/en-us/windows-server/administration/windows-commands/regsvr32).
